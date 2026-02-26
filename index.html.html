@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBU Guidance — Login</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b14;
+  --surface: #0f1623;
+  --surface2: #162030;
+  --border: #1c2a3f;
+  --accent: #00c6ff;
+  --gold: #e8b84b;
+  --text: #e4ecf7;
+  --muted: #5a7090;
+  --radius: 18px;
+  --error: #ff4d6d;
+  --success: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans','Tajawal',sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+body[dir="rtl"] { font-family: 'Tajawal','DM Sans',sans-serif; }
+
+/* ── BACKGROUND ── */
+.bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,198,255,.08) 0%, transparent 60%);
+}
+.bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,198,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,198,255,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+}
+.bg-glow {
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  top: -200px; left: 50%; transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(0,198,255,.1) 0%, transparent 65%);
+  animation: pulse 6s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1)} 50%{opacity:1;transform:translateX(-50%) scale(1.1)} }
+
+/* ── LANG SWITCH ── */
+.top-bar {
+  position: relative; z-index: 10;
+  display: flex; justify-content: flex-end;
+  padding: 20px 28px;
+}
+.lang-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 4px; gap: 2px;
+}
+.lang-btn {
+  padding: 6px 16px; border: none; border-radius: 100px;
+  background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .25s; font-family: inherit; letter-spacing: .5px;
+}
+.lang-btn.active {
+  background: linear-gradient(135deg, var(--accent), #0055cc);
+  color: white; box-shadow: 0 2px 12px rgba(0,198,255,.35);
+}
+
+/* ── MAIN LAYOUT ── */
+.page {
+  position: relative; z-index: 1;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px 20px 50px;
+}
+
+/* ── CARD ── */
+.card {
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 40px 36px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(0,198,255,.05);
+  animation: slideUp .5s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── LOGO ── */
+.logo-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 32px; gap: 12px;
+}
+.logo-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, var(--accent), #0055cc);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: white;
+  box-shadow: 0 8px 30px rgba(0,198,255,.35);
+  position: relative;
+}
+.logo-icon::after {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(0,198,255,.4), transparent);
+  z-index: -1; filter: blur(8px);
+}
+.logo-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 3px; color: var(--text);
+}
+body[dir="rtl"] .logo-title {
+  font-family: 'Tajawal', sans-serif;
+  font-weight: 800; font-size: 22px; letter-spacing: 0;
+}
+.logo-sub {
+  font-size: 13px; color: var(--muted); margin-top: -6px;
+}
+
+/* ── ROLE TABS ── */
+.role-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 28px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 5px;
+}
+.rtab {
+  padding: 10px; border: none; border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all .25s; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.rtab.active {
+  background: var(--surface2);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgba(0,0,0,.3);
+}
+.rtab.active.student { color: var(--accent); }
+.rtab.active.teacher { color: var(--gold); }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--muted); margin-bottom: 7px;
+  text-transform: uppercase; letter-spacing: .8px;
+}
+body[dir="rtl"] .form-label { letter-spacing: 0; }
+.form-input-wrap { position: relative; }
+.form-icon {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  left: 14px; font-size: 16px; pointer-events: none;
+  transition: .2s;
+}
+body[dir="rtl"] .form-icon { left: auto; right: 14px; }
+.form-input {
+  width: 100%; padding: 13px 14px 13px 42px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text);
+  font-size: 14px; font-family: inherit;
+  outline: none; transition: all .25s;
+}
+body[dir="rtl"] .form-input { padding: 13px 42px 13px 14px; }
+.form-input::placeholder { color: var(--muted); }
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,198,255,.1);
+  background: var(--surface2);
+}
+.form-input.error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(255,77,109,.1); }
+
+/* ── PASSWORD TOGGLE ── */
+.pwd-toggle {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  right: 14px; background: none; border: none;
+  color: var(--muted); cursor: pointer; font-size: 16px;
+  padding: 4px;
+}
+body[dir="rtl"] .pwd-toggle { right: auto; left: 14px; }
+
+/* ── ERROR MSG ── */
+.err-msg {
+  font-size: 12px; color: var(--error);
+  margin-top: 6px; display: none;
+  align-items: center; gap: 5px;
+}
+.err-msg.show { display: flex; animation: shake .3s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+/* ── LOGIN BUTTON ── */
+.login-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--accent), #0055cc);
+  border: none; border-radius: 12px;
+  color: white; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: all .25s; margin-top: 8px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,198,255,.3);
+}
+.login-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+  opacity: 0; transition: .25s;
+}
+.login-btn:hover:not(:disabled)::before { opacity: 1; }
+.login-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(0,198,255,.45); }
+.login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.login-btn.teacher-btn {
+  background: linear-gradient(135deg, var(--gold), #c47f0a);
+  box-shadow: 0 4px 20px rgba(232,184,75,.3);
+}
+.login-btn.teacher-btn:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(232,184,75,.45); }
+
+/* ── SPINNER INSIDE BUTTON ── */
+.btn-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+  border-radius: 50%; animation: spin .6s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+body[dir="rtl"] .btn-spinner { margin-right: 0; margin-left: 8px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── DIVIDER ── */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0; color: var(--muted); font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── DEMO ACCOUNTS ── */
+.demo-wrap { }
+.demo-title {
+  font-size: 11px; color: var(--muted); text-align: center;
+  margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px;
+}
+body[dir="rtl"] .demo-title { letter-spacing: 0; }
+.demo-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demo-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; cursor: pointer;
+  transition: all .2s; text-align: center;
+}
+.demo-card:hover { border-color: var(--accent); background: var(--surface2); }
+.demo-card.teacher:hover { border-color: var(--gold); }
+.demo-card-role { font-size: 11px; font-weight: 700; color: var(--muted); display: block; }
+.demo-card-id { font-size: 13px; font-weight: 600; color: var(--text); display: block; margin-top: 2px; font-family: monospace; }
+.demo-card-pw { font-size: 11px; color: var(--muted); display: block; margin-top: 1px; }
+
+/* ── SUPABASE SETUP NOTICE ── */
+.setup-notice {
+  background: rgba(232,184,75,.07);
+  border: 1px solid rgba(232,184,75,.2);
+  border-radius: 12px; padding: 14px 16px;
+  margin-top: 18px;
+  font-size: 12px; color: var(--muted); line-height: 1.7;
+}
+.setup-notice strong { color: var(--gold); display: block; margin-bottom: 4px; }
+.setup-notice code {
+  background: rgba(255,255,255,.07); padding: 1px 6px;
+  border-radius: 5px; font-family: monospace; color: var(--accent); font-size: 11px;
+}
+
+/* ── DASHBOARD (shown after login) ── */
+#dashboard { display: none; }
+#login-page { display: block; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 20px;
+  font-size: 13px; font-weight: 500;
+  z-index: 9999; opacity: 0;
+  transition: all .3s; white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: rgba(34,197,94,.4); color: var(--success); }
+.toast.error { border-color: rgba(255,77,109,.4); color: var(--error); }
+
+/* ══════════════════════════════════════
+   DASHBOARD STYLES
+══════════════════════════════════════ */
+.dash-wrap {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+/* topbar */
+.dash-top {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 24px 0 0; flex-wrap: wrap; gap: 14px;
+}
+.dash-logo { display: flex; align-items: center; gap: 12px; }
+.dash-logo-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--accent), #0055cc);
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue',sans-serif; font-size: 18px; color: white;
+}
+.dash-logo-text h2 {
+  font-family: 'Bebas Neue',sans-serif;
+  font-size: 22px; letter-spacing: 2px; line-height: 1;
+}
+body[dir="rtl"] .dash-logo-text h2 {
+  font-family: 'Tajawal',sans-serif;
+  font-weight: 800; font-size: 18px; letter-spacing: 0;
+}
+.dash-logo-text span { font-size: 12px; color: var(--muted); }
+.dash-controls { display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 100px; padding: 6px 14px 6px 8px;
+}
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.user-avatar.student { background: rgba(0,198,255,.15); }
+.user-avatar.teacher { background: rgba(232,184,75,.15); }
+.user-name { font-size: 13px; font-weight: 600; }
+.logout-btn {
+  padding: 7px 14px; background: transparent;
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); font-size: 12px; cursor: pointer;
+  transition: .2s; font-family: inherit;
+}
+.logout-btn:hover { border-color: var(--error); color: var(--error); }
+
+/* welcome banner */
+.welcome-banner {
+  margin-top: 24px;
+  background: linear-gradient(135deg, rgba(0,198,255,.08), rgba(0,85,204,.05));
+  border: 1px solid rgba(0,198,255,.15);
+  border-radius: 20px; padding: 24px 28px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.welcome-banner.teacher {
+  background: linear-gradient(135deg, rgba(232,184,75,.08), rgba(196,127,10,.05));
+  border-color: rgba(232,184,75,.2);
+}
+.welcome-icon { font-size: 40px; }
+.welcome-text h3 { font-size: 20px; font-weight: 700; }
+.welcome-text p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.welcome-id {
+  margin-left: auto;
+  background: rgba(0,0,0,.2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 16px; text-align: center;
+}
+body[dir="rtl"] .welcome-id { margin-left: 0; margin-right: auto; }
+.welcome-id span { display: block; font-size: 11px; color: var(--muted); }
+.welcome-id strong { font-family: monospace; font-size: 16px; color: var(--accent); }
+.welcome-banner.teacher .welcome-id strong { color: var(--gold); }
+
+/* stats, section, cards — reuse same design */
+.stats-bar { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
+.stat-num { font-family: 'Bebas Neue',sans-serif; font-size: 38px; line-height: 1; background: linear-gradient(135deg,var(--accent),#0055cc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+body[dir="rtl"] .stat-num { font-family:'Tajawal',sans-serif; font-weight:800; font-size:32px; }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+body[dir="rtl"] .stat-label { letter-spacing: 0; }
+
+.sec-header { margin-top: 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.sec-title { font-size: 17px; font-weight: 600; }
+.day-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-btn { padding: 6px 13px; border-radius: 100px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; transition: .2s; font-family: inherit; }
+.day-btn.active,.day-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+
+.schedule-grid { margin-top: 16px; display: grid; gap: 14px; animation: fu .4s ease both; }
+@keyframes fu { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.day-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding-right: 4px; }
+body[dir="ltr"] .day-label { padding-right:0; padding-left:4px; }
+.classes-list { display: flex; flex-direction: column; gap: 8px; }
+
+.class-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 15px 18px;
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 0 16px; align-items: center;
+  transition: .25s; cursor: default; position: relative; overflow: hidden;
+}
+.class-card::before {
+  content: ''; position: absolute;
+  right: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--accent); border-radius: 0 3px 3px 0;
+  opacity: 0; transition: .25s;
+}
+body[dir="ltr"] .class-card::before { right:auto; left:0; border-radius:3px 0 0 3px; }
+.class-card:hover { border-color: rgba(0,198,255,.25); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+.class-card:hover::before { opacity: 1; }
+.class-card.tc::before { background: var(--gold); }
+.class-card.tc:hover { border-color: rgba(232,184,75,.25); }
+
+.t-block { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 62px; }
+.t-start { font-family: 'Bebas Neue',sans-serif; font-size: 22px; line-height:1; color: var(--accent); }
+body[dir="rtl"] .t-start { font-family:'Tajawal',sans-serif; font-weight:700; font-size:17px; }
+.tc .t-start { color: var(--gold); }
+.t-sep { width: 16px; height: 1px; background: var(--border); }
+.t-end { font-size: 11px; color: var(--muted); }
+.ci { display: flex; flex-direction: column; gap: 4px; }
+.cn { font-size: 14px; font-weight: 600; }
+.cm { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.tag { padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; }
+.tdept { background: rgba(0,198,255,.1); color: var(--accent); }
+.ttype { background: rgba(255,255,255,.05); color: var(--muted); }
+.loc { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+body[dir="ltr"] .loc { align-items: flex-end; }
+.bldg { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 11px; min-width: 100px; }
+.bn { font-size: 12px; font-weight: 600; display: block; }
+.rn { font-size: 10px; color: var(--muted); display: block; margin-top: 1px; }
+.empty { text-align:center; padding:50px 20px; color:var(--muted); }
+.empty-icon { font-size: 42px; margin-bottom: 10px; }
+
+.loading { display:flex; align-items:center; justify-content:center; gap:12px; padding:50px; color:var(--muted); }
+.spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+
+@media(max-width:600px) {
+  .card { padding: 30px 22px; }
+  .class-card { grid-template-columns: auto 1fr; }
+  .loc { display: none; }
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body dir="ltr">
+
+<div class="bg"><div class="bg-grid"></div><div class="bg-glow"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ LOGIN PAGE ══════════════ -->
+<div id="login-page">
+  <div class="top-bar">
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('ar')">عر</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <!-- Logo -->
+      <div class="logo-wrap">
+        <div class="logo-icon">NBU</div>
+        <div id="logo-title" class="logo-title">NBU GUIDANCE</div>
+        <div id="logo-sub" class="logo-sub">Sign in to view your schedule</div>
+      </div>
+
+      <!-- Role tabs -->
+      <div class="role-tabs">
+        <button class="rtab student active" id="tab-student" onclick="selectRole('student')">
+          🎓 <span id="tab-s-lbl">Student</span>
+        </button>
+        <button class="rtab teacher" id="tab-teacher" onclick="selectRole('teacher')">
+          👨‍🏫 <span id="tab-t-lbl">Teacher</span>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <div class="form-group">
+        <label class="form-label" id="lbl-id">Student ID</label>
+        <div class="form-input-wrap">
+          <span class="form-icon">🪪</span>
+          <input class="form-input" id="inp-id" type="text" placeholder="e.g. STU-2024-001" autocomplete="username">
+        </div>
+        <div class="err-msg" id="err-id">⚠ <span id="err-id-txt">Please enter your ID</span></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" id="lbl-pw">Password</label>
+        <div class="form-input-wrap">
+          <span class="form-icon">🔒</span>
+          <input class="form-input" id="inp-pw" type="password" placeholder="••••••••" autocomplete="current-password">
+          <button class="pwd-toggle" onclick="togglePwd()" id="pwd-eye" type="button">👁</button>
+        </div>
+        <div class="err-msg" id="err-pw">⚠ <span id="err-pw-txt">Please enter your password</span></div>
+      </div>
+
+      <div class="err-msg" id="err-main" style="margin-bottom:10px">
+        ⚠ <span id="err-main-txt">Invalid ID or password</span>
+      </div>
+
+      <button class="login-btn" id="login-btn" onclick="doLogin()">
+        <span id="btn-txt">Sign In</span>
+      </button>
+
+      <div class="divider"><span id="div-lbl">Demo accounts</span></div>
+      <div class="demo-wrap">
+        <div class="demo-cards">
+          <div class="demo-card student" onclick="fillDemo('student')">
+            <span class="demo-card-role" id="demo-s-role">Student</span>
+            <span class="demo-card-id">STU-2024-001</span>
+            <span class="demo-card-pw">pass: student123</span>
+          </div>
+          <div class="demo-card teacher" onclick="fillDemo('teacher')">
+            <span class="demo-card-role" id="demo-t-role">Teacher</span>
+            <span class="demo-card-id">TCH-2024-001</span>
+            <span class="demo-card-pw">pass: teacher123</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-notice">
+        <strong>⚙️ Supabase Setup</strong>
+        To use real accounts from your database, open the <code>nbu_users_setup.sql</code> file in your Supabase SQL Editor and run it. Then update <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> in this file's script section.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="dashboard">
+  <div class="top-bar" style="justify-content:space-between;align-items:center">
+    <div style="width:80px"></div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('ar')">عر</button>
+    </div>
+  </div>
+
+  <div class="dash-wrap">
+    <!-- Top bar -->
+    <div class="dash-top">
+      <div class="dash-logo">
+        <div class="dash-logo-icon">NBU</div>
+        <div class="dash-logo-text">
+          <h2 id="dash-title">NBU GUIDANCE</h2>
+          <span id="dash-sub">Class Schedule System</span>
+        </div>
+      </div>
+      <div class="dash-controls">
+        <div class="user-chip">
+          <div class="user-avatar" id="dash-avatar">🎓</div>
+          <span class="user-name" id="dash-uname">—</span>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" id="btn-logout">Logout</button>
+      </div>
+    </div>
+
+    <!-- Welcome -->
+    <div class="welcome-banner" id="welcome-banner">
+      <div class="welcome-icon" id="w-icon">🎓</div>
+      <div class="welcome-text">
+        <h3 id="w-greeting">Welcome back!</h3>
+        <p id="w-sub">Here is your personal schedule for this semester.</p>
+      </div>
+      <div class="welcome-id">
+        <span id="w-id-lbl">Your ID</span>
+        <strong id="w-id-val">—</strong>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="stats-bar"></div>
+
+    <!-- Schedule -->
+    <div class="sec-header">
+      <div class="sec-title" id="sec-title">Weekly Schedule</div>
+      <div class="day-filter" id="day-filter"></div>
+    </div>
+    <div class="schedule-grid" id="schedule-grid">
+      <div class="loading"><div class="spinner"></div><span>Loading...</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  SUPABASE CONFIG
+//  ← replace with your actual keys
+// ══════════════════════════════════════════
+const SUPABASE_URL = 'https://mstdxodzzcmmzrznnqpb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdGR4b2R6emNtbXpyem5ucXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTkzOTcsImV4cCI6MjA4NzY5NTM5N30.WA5t0KaEw1UWwFcHKkaZX4MHC8OnLB_H2twluxlPLic';
+let sbClient = null;
+let useSupabase = false;
+
+try {
+  if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    useSupabase = true;
+  }
+} catch(e) {}
+
+// ══════════════════════════════════════════
+//  DEMO USERS (offline fallback)
+// ══════════════════════════════════════════
+const DEMO_USERS = {
+  'STU-2024-001': { password: 'student123', role: 'student', name: 'Ahmed Al-Rashidi', name_ar: 'أحمد الرشيدي' },
+  'STU-2024-002': { password: 'student123', role: 'student', name: 'Sara Al-Otaibi',   name_ar: 'سارة العتيبي' },
+  'TCH-2024-001': { password: 'teacher123', role: 'teacher', name: 'Dr. Khalid Nasser', name_ar: 'د. خالد ناصر' },
+  'TCH-2024-002': { password: 'teacher123', role: 'teacher', name: 'Dr. Fatima Al-Zahraa', name_ar: 'د. فاطمة الزهراء' },
+};
+
+// ══════════════════════════════════════════
+//  DEMO SCHEDULE DATA
+// ══════════════════════════════════════════
+const DEMO_DATA = {
+  student: [
+    {name_ar:'حساب التفاضل والتكامل I',name_en:'Calculus I',code:'MATH101',department:'Math',type_ar:'محاضرة',type_en:'Lecture',day:'Sun',start_time:'08:00',end_time:'09:30',building_ar:'مبنى أ',building_en:'Building A',room_ar:'قاعة 101',room_en:'Hall 101'},
+    {name_ar:'فيزياء',name_en:'Physics',code:'PHY201',department:'Science',type_ar:'مختبر',type_en:'Lab',day:'Sun',start_time:'10:00',end_time:'12:00',building_ar:'مركز العلوم',building_en:'Science Center',room_ar:'مختبر 3',room_en:'Lab 3'},
+    {name_ar:'هياكل البيانات',name_en:'Data Structures',code:'CS301',department:'CS',type_ar:'محاضرة',type_en:'Lecture',day:'Mon',start_time:'09:00',end_time:'10:30',building_ar:'برج التقنية',building_en:'Tech Tower',room_ar:'قاعة 204',room_en:'Room 204'},
+    {name_ar:'التواصل بالإنجليزية',name_en:'English Communication',code:'ENG102',department:'English',type_ar:'محاضرة',type_en:'Lecture',day:'Mon',start_time:'12:00',end_time:'13:30',building_ar:'مبنى ب',building_en:'Building B',room_ar:'قاعة 305',room_en:'Hall 305'},
+    {name_ar:'الخوارزميات',name_en:'Algorithms',code:'CS401',department:'CS',type_ar:'محاضرة',type_en:'Lecture',day:'Tue',start_time:'10:00',end_time:'11:30',building_ar:'برج التقنية',building_en:'Tech Tower',room_ar:'قاعة 201',room_en:'Room 201'},
+    {name_ar:'الدراسات الإسلامية',name_en:'Islamic Studies',code:'ISL101',department:'General',type_ar:'محاضرة',type_en:'Lecture',day:'Wed',start_time:'11:00',end_time:'12:30',building_ar:'القاعة الرئيسية',building_en:'Main Hall',room_ar:'القاعة الكبرى',room_en:'Auditorium'},
+    {name_ar:'هياكل البيانات — مختبر',name_en:'Data Structures Lab',code:'CS301L',department:'CS',type_ar:'مختبر',type_en:'Lab',day:'Thu',start_time:'09:00',end_time:'11:00',building_ar:'برج التقنية',building_en:'Tech Tower',room_ar:'مختبر 2',room_en:'Lab 2'},
+  ],
+  teacher: [
+    {name_ar:'حساب التكامل I — شعبة أ',name_en:'Calculus I – Sec A',code:'MATH101-A',department:'Math',type_ar:'محاضرة',type_en:'Lecture',day:'Sun',start_time:'08:00',end_time:'09:30',building_ar:'مبنى أ',building_en:'Building A',room_ar:'قاعة 101',room_en:'Hall 101'},
+    {name_ar:'حساب التكامل I — شعبة ب',name_en:'Calculus I – Sec B',code:'MATH101-B',department:'Math',type_ar:'محاضرة',type_en:'Lecture',day:'Sun',start_time:'10:00',end_time:'11:30',building_ar:'مبنى أ',building_en:'Building A',room_ar:'قاعة 102',room_en:'Hall 102'},
+    {name_ar:'حساب التفاضل II',name_en:'Calculus II',code:'MATH201',department:'Math',type_ar:'محاضرة',type_en:'Lecture',day:'Mon',start_time:'09:00',end_time:'10:30',building_ar:'مبنى أ',building_en:'Building A',room_ar:'قاعة 203',room_en:'Room 203'},
+    {name_ar:'ساعات المكتب',name_en:'Office Hours',code:'OH',department:'Math',type_ar:'مكتب',type_en:'Office',day:'Tue',start_time:'11:00',end_time:'13:00',building_ar:'جناح هيئة التدريس',building_en:'Faculty Wing',room_ar:'مكتب 45',room_en:'Office 45'},
+    {name_ar:'مراجعة امتحان حساب II',name_en:'Calculus II – Review',code:'MATH201',department:'Math',type_ar:'محاضرة',type_en:'Lecture',day:'Thu',start_time:'12:00',end_time:'13:30',building_ar:'مبنى أ',building_en:'Building A',room_ar:'قاعة 101',room_en:'Hall 101'},
+  ]
+};
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let lang = 'en';
+let currentUser = null;
+let activeDay = 'all';
+let loginRole = 'student';
+
+// ══════════════════════════════════════════
+//  I18N
+// ══════════════════════════════════════════
+const TX = {
+  en: {
+    logoTitle:'NBU GUIDANCE', logoSub:'Sign in to view your schedule',
+    tabStudent:'Student', tabTeacher:'Teacher',
+    lblId:'Student ID', lblIdT:'Teacher ID', lblPw:'Password',
+    btnSign:'Sign In', btnSigning:'Signing in...',
+    errId:'Please enter your ID', errPw:'Please enter your password',
+    errWrong:'Invalid ID or password. Try the demo accounts below.',
+    divDemo:'Demo accounts', demoSRole:'Student', demoTRole:'Teacher',
+    dashTitle:'NBU GUIDANCE', dashSub:'Class Schedule System',
+    logout:'Logout',
+    wGreetS:'Welcome back, student!', wGreetT:'Welcome back, professor!',
+    wSubS:'Here is your personal schedule for this semester.',
+    wSubT:'Here are your teaching assignments for this semester.',
+    wIdLbl:'Your ID',
+    totalC:'Total Classes', buildings:'Buildings', hours:'Credit Hours',
+    secTitle:'Weekly Schedule', allDays:'All Days',
+    noData:'No classes on this day', noDataSub:'Try selecting another day',
+    loading:'Loading your schedule...',
+    days:{Sun:'Sunday',Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday'},
+    daysS:{Sun:'Sun',Mon:'Mon',Tue:'Tue',Wed:'Wed',Thu:'Thu'},
+  },
+  ar: {
+    logoTitle:'دليل جامعة الشمالية', logoSub:'سجّل دخولك لعرض جدولك',
+    tabStudent:'الطالب', tabTeacher:'الأستاذ',
+    lblId:'رقم الطالب', lblIdT:'رقم الأستاذ', lblPw:'كلمة المرور',
+    btnSign:'تسجيل الدخول', btnSigning:'جاري الدخول...',
+    errId:'الرجاء إدخال رقمك', errPw:'الرجاء إدخال كلمة المرور',
+    errWrong:'رقم الهوية أو كلمة المرور غير صحيحة. جرّب الحسابات التجريبية.',
+    divDemo:'حسابات تجريبية', demoSRole:'طالب', demoTRole:'أستاذ',
+    dashTitle:'دليل الجامعة', dashSub:'نظام جدول المحاضرات',
+    logout:'تسجيل خروج',
+    wGreetS:'مرحباً بعودتك، طالب!', wGreetT:'مرحباً بعودتك، أستاذ!',
+    wSubS:'هذا جدولك الدراسي الشخصي للفصل الحالي.',
+    wSubT:'هذه محاضراتك لهذا الفصل الدراسي.',
+    wIdLbl:'رقمك الجامعي',
+    totalC:'إجمالي المحاضرات', buildings:'المباني', hours:'ساعات معتمدة',
+    secTitle:'الجدول الأسبوعي', allDays:'كل الأيام',
+    noData:'لا توجد محاضرات هذا اليوم', noDataSub:'اختر يوماً آخر',
+    loading:'جاري تحميل جدولك...',
+    days:{Sun:'الأحد',Mon:'الاثنين',Tue:'الثلاثاء',Wed:'الأربعاء',Thu:'الخميس'},
+    daysS:{Sun:'أحد',Mon:'اثنين',Tue:'ثلاثاء',Wed:'أربعاء',Thu:'خميس'},
+  }
+};
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+function selectRole(r) {
+  loginRole = r;
+  document.getElementById('tab-student').classList.toggle('active', r==='student');
+  document.getElementById('tab-teacher').classList.toggle('active', r==='teacher');
+  const t = TX[lang];
+  document.getElementById('lbl-id').textContent = r==='student' ? t.lblId : t.lblIdT;
+  document.getElementById('inp-id').placeholder = r==='student' ? 'e.g. STU-2024-001' : 'e.g. TCH-2024-001';
+  document.getElementById('login-btn').className = r==='teacher' ? 'login-btn teacher-btn' : 'login-btn';
+  clearErrors();
+}
+
+async function doLogin() {
+  const id = document.getElementById('inp-id').value.trim();
+  const pw = document.getElementById('inp-pw').value;
+  clearErrors();
+
+  if (!id) { showErr('id', TX[lang].errId); return; }
+  if (!pw) { showErr('pw', TX[lang].errPw); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  document.getElementById('btn-txt').innerHTML = `<span class="btn-spinner"></span>${TX[lang].btnSigning}`;
+
+  try {
+    let user = null;
+
+    if (useSupabase) {
+      // ── Real Supabase auth ──
+      const { data, error } = await sbClient
+        .from('users')
+        .select('*')
+        .eq('user_id', id)
+        .eq('password', pw)   // In production: use hashed passwords!
+        .eq('role', loginRole)
+        .single();
+      if (error || !data) throw new Error('invalid');
+      user = { id, role: data.role, name: data.name_en, name_ar: data.name_ar };
+    } else {
+      // ── Demo offline auth ──
+      await new Promise(r => setTimeout(r, 800));
+      const u = DEMO_USERS[id];
+      if (!u || u.password !== pw || u.role !== loginRole) throw new Error('invalid');
+      user = { id, role: u.role, name: u.name, name_ar: u.name_ar };
+    }
+
+    currentUser = user;
+    sessionStorage.setItem('nbu_user', JSON.stringify(user));
+    showToast('✅ ' + (lang==='ar' ? 'تم تسجيل الدخول' : 'Signed in successfully'), 'success');
+    setTimeout(() => showDashboard(), 400);
+
+  } catch(e) {
+    showErr('main', TX[lang].errWrong);
+    document.getElementById('inp-id').classList.add('error');
+    document.getElementById('inp-pw').classList.add('error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('btn-txt').textContent = TX[lang].btnSign;
+  }
+}
+
+function fillDemo(role) {
+  selectRole(role);
+  document.getElementById('inp-id').value = role==='student' ? 'STU-2024-001' : 'TCH-2024-001';
+  document.getElementById('inp-pw').value = role==='student' ? 'student123' : 'teacher123';
+  clearErrors();
+}
+
+function doLogout() {
+  currentUser = null;
+  sessionStorage.removeItem('nbu_user');
+  activeDay = 'all';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-page').style.display = 'block';
+  document.getElementById('inp-id').value = '';
+  document.getElementById('inp-pw').value = '';
+  showToast(lang==='ar' ? 'تم تسجيل الخروج' : 'Signed out', 'success');
+}
+
+function showErr(field, msg) {
+  if (field==='id') { document.getElementById('err-id-txt').textContent=msg; document.getElementById('err-id').classList.add('show'); document.getElementById('inp-id').classList.add('error'); }
+  else if(field==='pw') { document.getElementById('err-pw-txt').textContent=msg; document.getElementById('err-pw').classList.add('show'); document.getElementById('inp-pw').classList.add('error'); }
+  else { document.getElementById('err-main-txt').textContent=msg; document.getElementById('err-main').classList.add('show'); }
+}
+
+function clearErrors() {
+  ['err-id','err-pw','err-main'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  ['inp-id','inp-pw'].forEach(id=>document.getElementById(id).classList.remove('error'));
+}
+
+function togglePwd() {
+  const inp = document.getElementById('inp-pw');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  document.getElementById('pwd-eye').textContent = inp.type==='password' ? '👁' : '🙈';
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+async function showDashboard() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  renderDashboard();
+  await loadSchedule();
+}
+
+function renderDashboard() {
+  const t = TX[lang];
+  const u = currentUser;
+  const isTeacher = u.role === 'teacher';
+  const displayName = lang==='ar' ? u.name_ar : u.name;
+
+  document.getElementById('dash-title').textContent = t.dashTitle;
+  document.getElementById('dash-sub').textContent = t.dashSub;
+  document.getElementById('btn-logout').textContent = t.logout;
+
+  document.getElementById('dash-avatar').textContent = isTeacher ? '👨‍🏫' : '🎓';
+  document.getElementById('dash-avatar').className = 'user-avatar ' + u.role;
+  document.getElementById('dash-uname').textContent = displayName;
+
+  const banner = document.getElementById('welcome-banner');
+  banner.className = 'welcome-banner' + (isTeacher?' teacher':'');
+  document.getElementById('w-icon').textContent = isTeacher ? '👨‍🏫' : '🎓';
+  document.getElementById('w-greeting').textContent = isTeacher ? t.wGreetT : t.wGreetS;
+  document.getElementById('w-sub').textContent = isTeacher ? t.wSubT : t.wSubS;
+  document.getElementById('w-id-lbl').textContent = t.wIdLbl;
+  document.getElementById('w-id-val').textContent = u.id;
+
+  document.getElementById('sec-title').textContent = t.secTitle;
+}
+
+async function loadSchedule() {
+  const grid = document.getElementById('schedule-grid');
+  const t = TX[lang];
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><span>${t.loading}</span></div>`;
+
+  let classes = [];
+  try {
+    if (useSupabase) {
+      const { data, error } = await sbClient
+        .from('classes')
+        .select('*')
+        .eq('for_role', currentUser.role)
+        .eq('user_id', currentUser.id)   // personal schedule!
+        .order('day').order('start_time');
+      if (error) throw error;
+      classes = data || [];
+    } else {
+      await new Promise(r => setTimeout(r, 500));
+      classes = DEMO_DATA[currentUser.role] || [];
+    }
+    renderSchedule(classes);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Error loading schedule</p></div>`;
+  }
+}
+
+function renderSchedule(classes) {
+  const t = TX[lang];
+  const daysOrder = ['Sun','Mon','Tue','Wed','Thu'];
+  const isRtl = lang==='ar';
+  const isTeacher = currentUser.role==='teacher';
+
+  // Stats
+  const uniqueB = [...new Set(classes.map(c=>c.building_en))].length;
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${classes.length}</div><div class="stat-label">${t.totalC}</div></div>
+    <div class="stat-card"><div class="stat-num">${uniqueB}</div><div class="stat-label">${t.buildings}</div></div>
+    <div class="stat-card"><div class="stat-num">${isTeacher?9:15}</div><div class="stat-label">${t.hours}</div></div>
+  `;
+
+  // Day filter
+  document.getElementById('day-filter').innerHTML =
+    `<button class="day-btn ${activeDay==='all'?'active':''}" onclick="filterDay('all')">${t.allDays}</button>` +
+    daysOrder.map(d=>`<button class="day-btn ${activeDay===d?'active':''}" onclick="filterDay('${d}',event)">${t.daysS[d]}</button>`).join('');
+
+  const filtered = activeDay==='all' ? classes : classes.filter(c=>c.day===activeDay);
+  const grid = document.getElementById('schedule-grid');
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>${t.noData}</p><p style="font-size:12px;margin-top:5px">${t.noDataSub}</p></div>`;
+    return;
+  }
+
+  const grouped = {};
+  daysOrder.forEach(d => { grouped[d] = filtered.filter(c=>c.day===d); });
+
+  grid.innerHTML = daysOrder.filter(d=>grouped[d].length).map(d=>`
+    <div>
+      <div class="day-label">${t.days[d]}</div>
+      <div class="classes-list">
+        ${grouped[d].map(c=>`
+          <div class="class-card ${isTeacher?'tc':''}">
+            <div class="t-block">
+              <div class="t-start">${c.start_time}</div>
+              <div class="t-sep"></div>
+              <div class="t-end">${c.end_time}</div>
+            </div>
+            <div class="ci">
+              <div class="cn">${isRtl ? c.name_ar : c.name_en}</div>
+              <div class="cm">
+                <span>${c.code}</span>
+                <span class="tag tdept">${c.department}</span>
+                <span class="tag ttype">${isRtl ? c.type_ar : c.type_en}</span>
+              </div>
+            </div>
+            <div class="loc">
+              <div class="bldg">
+                <span class="bn">${isRtl ? c.building_ar : c.building_en}</span>
+                <span class="rn">${isRtl ? c.room_ar : c.room_en}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterDay(d, e) {
+  activeDay = d;
+  loadSchedule();
+}
+
+// ══════════════════════════════════════════
+//  LANG
+// ══════════════════════════════════════════
+function setLang(l) {
+  lang = l;
+  document.documentElement.lang = l;
+  document.body.dir = l==='ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('.lang-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim().startsWith(l==='ar'?'ع':'E'))
+  );
+  const t = TX[l];
+  document.getElementById('logo-title').textContent = t.logoTitle;
+  document.getElementById('logo-sub').textContent = t.logoSub;
+  document.getElementById('tab-s-lbl').textContent = t.tabStudent;
+  document.getElementById('tab-t-lbl').textContent = t.tabTeacher;
+  document.getElementById('lbl-id').textContent = loginRole==='student' ? t.lblId : t.lblIdT;
+  document.getElementById('lbl-pw').textContent = t.lblPw;
+  document.getElementById('btn-txt').textContent = t.btnSign;
+  document.getElementById('div-lbl').textContent = t.divDemo;
+  document.getElementById('demo-s-role').textContent = t.demoSRole;
+  document.getElementById('demo-t-role').textContent = t.demoTRole;
+
+  if (currentUser) {
+    renderDashboard();
+    loadSchedule();
+  }
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════
+//  ENTER KEY
+// ══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('login-page').style.display!=='none') doLogin();
+});
+
+// ══════════════════════════════════════════
+//  INIT — restore session
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  const saved = sessionStorage.getItem('nbu_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      showDashboard();
+    } catch(e) {}
+  }
+});
+</script>
+</body>
+</html>
